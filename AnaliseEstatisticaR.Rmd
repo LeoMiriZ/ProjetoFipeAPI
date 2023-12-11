@@ -1,0 +1,155 @@
+---
+title: "Atividade 3 - Análise Exploratória"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    social: menu
+    source_code: embed
+    
+runtime: shiny
+---
+
+```{r global, include=FALSE}
+
+
+# load data in 'global' chunk so it can be shared by all users of the dashboard
+
+library(tidyverse)
+library(readxl)
+
+setwd("C:/Users/baptista.leonardo/Downloads")
+
+dados = read_excel("DadosFipe.xlsx")
+
+dados1 = dados[-c(1)]
+
+```
+
+```{r}
+
+selectedData <- reactive({
+  data <- brushedPoints(dados2, input$plot_brush)
+  if (nrow(data) == 0)
+    data <- dados2
+  data
+})
+
+
+```
+
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### Boxplot 1 - Novembro {data-width=500}
+
+
+```{r}
+
+library(ggplot2)
+
+renderPlot({
+
+ggplot(dados2, aes(y = dados2$novembro, x = dados2$marca)) + geom_boxplot(fill = "orange") + labs(title = "Preços de novembro por marca", x = "Marca", y = "Preço") + guides(fill="none")
+  
+})
+
+```
+
+
+### Boxplot 2 - Outubro 
+
+```{r}
+
+renderPlot({
+
+ggplot(dados2, aes(y = dados2$outubro, x = dados2$marca)) + geom_boxplot(fill = "red") + labs(title = "Preços de outubro por marca", x = "Marca", y = "Preço") + guides(fill="none")
+  
+})
+
+```
+
+
+```{r, warning=FALSE}
+
+dados2 = drop_na(dados1)
+
+tabela <- dados2 %>%
+  group_by(dados2$marca) %>%
+  summarise(
+    media_setembro = mean(setembro),
+    media_outubro = mean(outubro),
+    media_novembro = mean(novembro)
+  )
+
+```
+
+### Boxplot 3 - Setembro {data-width=600}
+
+```{r}
+
+renderPlot({
+
+ggplot(dados2, aes(y = dados2$setembro, x = dados2$marca)) + geom_boxplot(fill = "yellow") + labs(title = "Preços de setembro por marca", x = "Marca", y = "Preço") + guides(fill="none")
+  
+})
+
+```
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### Gráfico 1 - Preço x Marca X Período
+
+```{r, warning=FALSE, echo=FALSE, message=FALSE}
+
+library(tidyr)
+library(ggplot2)
+
+tabela2 <- tabela %>%
+  gather(key = "variavel", value = "valor", -`dados2$marca`)
+
+tabela2$variavel = factor(tabela2$variavel, levels = c("media_setembro", "media_outubro","media_novembro"))
+
+tabela2 = rename(tabela2, marca = `dados2$marca`)
+
+tabela2$marca = factor(tabela2$marca, levels = c("Honda",
+                                                 "Hyundai",
+                                                 "GM - Chevrolet",
+                                                 "Nissan",
+                                                 "VW - VolksWagen",
+                                                 "Citroën",
+                                                 "Renault",
+                                                 "Peugeot",
+                                                 "Ford",
+                                                 "Fiat"))
+
+
+
+renderPlot({
+
+ggplot(tabela2, aes(x = variavel, y = valor, color = marca)) +
+  geom_point(aes(size = 3, alpha = 0.9)) +
+  labs(title = "Médias de preços por marca nos meses de setembro, outubro e novembro",
+       x = "Marca",
+       y = "Média de Preço") +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+})
+
+
+```
+
+
+### Dados específicos da base
+
+```{r}
+
+renderTable({
+  selectedData()
+})
+
+```
+
+
